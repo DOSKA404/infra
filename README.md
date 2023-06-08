@@ -8,43 +8,56 @@
 ## Deploiment des application avec Docker
 
 ### conteneurisation de l’application
-Assurez-vous que Docker est installé sur votre système. Vous pouvez vérifier cela en exécutant la commande docker version.
 
-Créez un fichier Dockerfile à la racine de votre application. Le Dockerfile est un fichier texte qui contient les instructions pour construire l'image Docker. Voici un exemple de Dockerfile simple pour une application Node.js :
+dans cette exemple l'aplication conteunerisé est en golang
 
+Assurez-vous d'avoir Docker installé sur votre machine.
+
+Créez un fichier Dockerfile dans le répertoire racine de votre application Go. Ce fichier Dockerfile définira les instructions pour la construction de l'image Docker.
+
+Ouvrez le fichier Dockerfile dans un éditeur de texte et ajoutez les lignes suivantes :
 
 ```
-#### Utilisez une image de base appropriée
-FROM node:14
+# Utilisez une image de base avec Go préinstallé
+FROM golang:latest
 
-#### Définissez le répertoire de travail dans le conteneur
+# Définissez le répertoire de travail dans le conteneur
 WORKDIR /app
 
-#### Copiez les fichiers de l'application dans le conteneur
-COPY package.json package-lock.json ./
-RUN npm install
-
-#### Copiez le reste des fichiers de l'application dans le conteneur
+# Copiez les fichiers du répertoire local vers le répertoire de travail du conteneur
 COPY . .
 
-#### Démarrez l'application lorsque le conteneur démarre
-CMD ["npm", "start"]
-```
+# Construisez l'application Go
+RUN go build -o main .
 
-Ouvrez une ligne de commande dans le répertoire où se trouve le Dockerfile.
+# Utilisez une image de base Nginx
+FROM nginx:latest
+
+# Copiez le binaire de l'application Go construite dans le répertoire approprié de Nginx
+COPY --from=0 /app/main /usr/share/nginx/html
+
+# Exposez le port 80 pour le trafic HTTP
+EXPOSE 80
+
+# Démarrez Nginx lors du démarrage du conteneur
+CMD ["nginx", "-g", "daemon off;"]
+```
+Enregistrez le fichier Dockerfile.
+
+Ouvrez une fenêtre de terminal et accédez au répertoire contenant votre Dockerfile.
 
 Construisez l'image Docker en exécutant la commande suivante :
 
+```
+docker build -t monapp .
+```
+Cela va créer une nouvelle image Docker nommée "monapp" en utilisant le Dockerfile du répertoire actuel.
 
+Une fois que la construction de l'image est terminée, vous pouvez exécuter un conteneur basé sur cette image en utilisant la commande suivante :
+```
+docker run -d -p 80:80 monapp
+```
+Cela va démarrer un nouveau conteneur en arrière-plan et lier le port 80 de votre machine hôte au port 80 du conteneur.
 
-`docker build -t nom_image .`
-Remplacez "nom_image" par le nom que vous souhaitez donner à votre image. Le point à la fin de la commande spécifie que le Dockerfile se trouve dans le répertoire actuel.
-
-
-Une fois la construction de l'image terminée, vous pouvez exécuter un conteneur basé sur cette image en utilisant la commande suivante :
-
-`
-docker run -d nom_image
-Cela démarre un conteneur en arrière-plan (-d) à partir de l'image spécifiée.
-`
-Pour vérifier que votre conteneur est en cours d'exécution, vous pouvez utiliser la commande `docker ps`. Cela affichera la liste des conteneurs en cours d'exécution.
+Vous pouvez maintenant accéder à votre application Go via un navigateur en utilisant l'URL http://localhost.
+Assurez-vous que votre application Go écoute sur le port approprié (par défaut, le port 80) pour que Nginx puisse la servir correctement.
