@@ -12,8 +12,8 @@ Assurez-vous que Docker est installé sur votre système. Vous pouvez vérifier 
 
 Créez un fichier Dockerfile à la racine de votre application. Le Dockerfile est un fichier texte qui contient les instructions pour construire l'image Docker. Voici un exemple de Dockerfile simple pour une application Node.js :
 
-`
-#### Utilisez une image de base appropriée
+
+`#### Utilisez une image de base appropriée
 FROM node:14
 
 #### Définissez le répertoire de travail dans le conteneur
@@ -27,17 +27,17 @@ RUN npm install
 COPY . .
 
 #### Démarrez l'application lorsque le conteneur démarre
-CMD ["npm", "start"]
-`
+CMD ["npm", "start"]`
+
 Ouvrez une ligne de commande dans le répertoire où se trouve le Dockerfile.
 
 Construisez l'image Docker en exécutant la commande suivante :
 
 
-`
-docker build -t nom_image .
+
+`docker build -t nom_image .`
 Remplacez "nom_image" par le nom que vous souhaitez donner à votre image. Le point à la fin de la commande spécifie que le Dockerfile se trouve dans le répertoire actuel.
-`
+
 
 Une fois la construction de l'image terminée, vous pouvez exécuter un conteneur basé sur cette image en utilisant la commande suivante :
 
