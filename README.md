@@ -61,3 +61,53 @@ Cela va démarrer un nouveau conteneur en arrière-plan et lier le port 80 de vo
 
 Vous pouvez maintenant accéder à votre application Go via un navigateur en utilisant l'URL http://localhost.
 Assurez-vous que votre application Go écoute sur le port approprié (par défaut, le port 80) pour que Nginx puisse la servir correctement.
+
+## Geration du certificat SSL
+
+Générez une clé privée SSL en utilisant la commande openssl :
+
+```
+sudo openssl genpkey -algorithm RSA -out private.key
+```
+Créez une demande de signature de certificat (CSR - Certificate Signing Request) en utilisant la clé privée précédemment générée :
+
+```
+sudo openssl req -new -key private.key -out csr.pem
+```
+Vous serez invité à fournir des informations pour le certificat, telles que le nom commun (domaine) pour lequel vous souhaitez générer le certificat.
+
+Auto-signez le certificat en utilisant le CSR et la clé privée :
+
+```
+sudo openssl x509 -req -days 365 -in csr.pem -signkey private.key -out certificate.crt
+```
+Cela générera un certificat auto-signé valide pour 365 jours.
+
+Déplacez les fichiers clés générés dans les emplacements appropriés pour Nginx :
+
+```
+sudo mv private.key /etc/ssl/private/
+sudo mv certificate.crt /etc/ssl/certs/
+```
+Configurez Nginx pour utiliser le certificat SSL auto-signé en éditant le fichier de configuration du site :
+
+```
+sudo nano /etc/nginx/sites-available/votre_site.conf
+```
+À l'intérieur du bloc server, ajoutez ou modifiez les lignes suivantes pour activer SSL et spécifier le chemin vers les clés :
+
+```
+listen 443 ssl;
+ssl_certificate /etc/ssl/certs/certificate.crt;
+ssl_certificate_key /etc/ssl/private/private.key;
+```
+Sauvegardez et fermez le fichier.
+
+Vérifiez la configuration de Nginx pour vous assurer qu'il n'y a pas d'erreurs :
+```
+sudo nginx -t
+```
+Redémarrez le service Nginx pour appliquer les modifications :
+```
+sudo systemctl restart nginx
+```
