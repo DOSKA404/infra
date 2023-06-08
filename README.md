@@ -145,6 +145,11 @@ Redémarrez le serveur Nginx pour appliquer les modifications en utilisant la co
 ```
 sudo service nginx restart
 ```
+
+sans oublié de lancer l'image docker afin que l'application fonctionne
+```
+docker run -d -p 8001:80 --name container1 image1
+```
 Après avoir suivi ces étapes, votre serveur web Nginx sera configuré avec votre site principal, vos sous-domaines, et le support SSL avec des certificats auto-signés. Assurez-vous que les conteneurs Docker correspondants sont en cours d'exécution sur les ports spécifiés.
 
 Vérifiez l'accès à votre site principal et à vos sous-domaines en ouvrant un navigateur Web et en accédant à l'URL correspondante (par exemple, http://monsite.com ou http://sousdomaine1.monsite.com).
