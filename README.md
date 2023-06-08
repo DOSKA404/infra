@@ -6,7 +6,9 @@
 Assurez-vous d'avoir les éléments suivants installés sur votre machine :
 
 Docker : Suivez les instructions spécifiques à votre système d'exploitation pour installer Docker.
+
 Nginx : Installez Nginx sur votre système en suivant la documentation officielle.
+
 OpenSSL : Installez OpenSSL sur votre système pour la génération des certificats auto-signés.
 
 ## Étape 2 : Configuration du serveur web Nginx
