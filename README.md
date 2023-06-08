@@ -2,112 +2,147 @@
 
 # serveur web
 
-## Creation du serveur avec NGINX
+## Étape 1 : Prérequis
+Assurez-vous d'avoir les éléments suivants installés sur votre machine :
 
+Docker : Suivez les instructions spécifiques à votre système d'exploitation pour installer Docker.
+Nginx : Installez Nginx sur votre système en suivant la documentation officielle.
+OpenSSL : Installez OpenSSL sur votre système pour la génération des certificats auto-signés.
 
-## Deploiment des application avec Docker
+## Étape 2 : Configuration du serveur web Nginx
 
-
-
-dans cette exemple l'aplication conteunerisé est en golang
-
-Assurez-vous d'avoir Docker installé sur votre machine.
-
-Créez un fichier Dockerfile dans le répertoire racine de votre application Go. Ce fichier Dockerfile définira les instructions pour la construction de l'image Docker.
-
-Ouvrez le fichier Dockerfile dans un éditeur de texte et ajoutez les lignes suivantes :
+Créez un répertoire pour stocker les fichiers de configuration Nginx :
 
 ```
-# Utilisez une image de base avec Go préinstallé
-FROM golang:latest
-
-# Définissez le répertoire de travail dans le conteneur
-WORKDIR /app
-
-# Copiez les fichiers du répertoire local vers le répertoire de travail du conteneur
-COPY . .
-
-# Construisez l'application Go
-RUN go build -o main .
-
-# Utilisez une image de base Nginx
-FROM nginx:latest
-
-# Copiez le binaire de l'application Go construite dans le répertoire approprié de Nginx
-COPY --from=0 /app/main /usr/share/nginx/html
-
-# Exposez le port 80 pour le trafic HTTP
-EXPOSE 80
-
-# Démarrez Nginx lors du démarrage du conteneur
-CMD ["nginx", "-g", "daemon off;"]
+sudo mkdir /etc/nginx/sites-available
+sudo mkdir /etc/nginx/sites-enabled
 ```
-Enregistrez le fichier Dockerfile.
-
-Ouvrez une fenêtre de terminal et accédez au répertoire contenant votre Dockerfile.
-
-Construisez l'image Docker en exécutant la commande suivante :
+Ouvrez le fichier de configuration principal de Nginx :
 
 ```
-docker build -t monapp .
+sudo nano /etc/nginx/nginx.conf
 ```
-Cela va créer une nouvelle image Docker nommée "monapp" en utilisant le Dockerfile du répertoire actuel.
-
-Une fois que la construction de l'image est terminée, vous pouvez exécuter un conteneur basé sur cette image en utilisant la commande suivante :
-```
-docker run -d -p 80:80 monapp
-```
-Cela va démarrer un nouveau conteneur en arrière-plan et lier le port 80 de votre machine hôte au port 80 du conteneur.
-
-Vous pouvez maintenant accéder à votre application Go via un navigateur en utilisant l'URL http://localhost.
-Assurez-vous que votre application Go écoute sur le port approprié (par défaut, le port 80) pour que Nginx puisse la servir correctement.
-
-## Geration du certificat SSL
-
-Générez une clé privée SSL en utilisant la commande openssl :
+Ajoutez la directive suivante dans la section http :
 
 ```
-sudo openssl genpkey -algorithm RSA -out private.key
+include /etc/nginx/sites-enabled/*;
 ```
-Créez une demande de signature de certificat (CSR - Certificate Signing Request) en utilisant la clé privée précédemment générée :
+Sauvegardez et fermez le fichier de configuration.
+
+Créez un fichier de configuration pour votre site principal :
 
 ```
-sudo openssl req -new -key private.key -out csr.pem
+sudo nano /etc/nginx/sites-available/monsite.conf
 ```
-Vous serez invité à fournir des informations pour le certificat, telles que le nom commun (domaine) pour lequel vous souhaitez générer le certificat.
-
-Auto-signez le certificat en utilisant le CSR et la clé privée :
+Ajoutez le bloc de configuration suivant pour votre site principal :
 
 ```
-sudo openssl x509 -req -days 365 -in csr.pem -signkey private.key -out certificate.crt
-```
-Cela générera un certificat auto-signé valide pour 365 jours.
+server {
+    listen 80;
+    server_name monsite.com www.monsite.com;
 
-Déplacez les fichiers clés générés dans les emplacements appropriés pour Nginx :
+    location / {
+        proxy_pass http://localhost:8000;  # Remplacez le port selon les besoins de votre application principale
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+Modifiez monsite.com et www.monsite.com avec votre nom de domaine principal. Remplacez également le port (8000) par le port utilisé par votre application principale.
+
+Sauvegardez et fermez le fichier de configuration.
+
+Créez des liens symboliques pour activer la configuration de votre site principal :
 
 ```
-sudo mv private.key /etc/ssl/private/
-sudo mv certificate.crt /etc/ssl/certs/
+sudo ln -s /etc/nginx/sites-available/monsite.conf /etc/nginx/sites-enabled/
 ```
-Configurez Nginx pour utiliser le certificat SSL auto-signé en éditant le fichier de configuration du site :
+## Étape 3 : Génération des certificats SSL auto-signés
+
+Générez une clé privée et un certificat auto-signé en utilisant OpenSSL :
 
 ```
-sudo nano /etc/nginx/sites-available/votre_site.conf
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/monsite.key -out /etc/nginx/ssl/monsite.crt
 ```
-À l'intérieur du bloc server, ajoutez ou modifiez les lignes suivantes pour activer SSL et spécifier le chemin vers les clés :
+Remplacez monsite par le nom de votre site principal.
+
+Répondez aux questions du formulaire de génération du certificat selon vos préférences.
+
+Assurez-vous que les fichiers de clé privée (monsite.key) et de certificat (monsite.crt) sont correctement générés dans le répertoire spécifié.
+
+## Étape 4 : Configuration des sous-domaines
+
+Ouvrez le fichier de configuration de votre site principal :
 
 ```
-listen 443 ssl;
-ssl_certificate /etc/ssl/certs/certificate.crt;
-ssl_certificate_key /etc/ssl/private/private.key;
+sudo nano /etc/nginx/sites-available/monsite.conf
 ```
-Sauvegardez et fermez le fichier.
+Ajoutez les blocs de configuration suivants pour chaque sous-domaine souhaité :
 
-Vérifiez la configuration de Nginx pour vous assurer qu'il n'y a pas d'erreurs :
 ```
-sudo nginx -t
+server {
+    listen 80;
+    server_name sousdomaine1.monsite.com;
+
+    location / {
+        proxy_pass http://localhost:8001;  # Remplacez le port selon les besoins de votre application pour sousdomaine1.monsite.com
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+server {
+    listen 80;
+    server_name sousdomaine2.monsite.com;
+
+    location / {
+        proxy_pass http://localhost:8002;  # Remplacez le port selon les besoins de votre application pour sousdomaine2.monsite.com
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
 ```
-Redémarrez le service Nginx pour appliquer les modifications :
+Ajoutez autant de blocs de configuration que nécessaire pour vos sous-domaines, en remplaçant les ports (8001, 8002, etc.) par les ports utilisés par les applications correspondantes.
+
+Sauvegardez et fermez le fichier de configuration.
+
+Créez des liens symboliques pour activer la configuration de vos sous-domaines :
+
 ```
-sudo systemctl restart nginx
+sudo ln -s /etc/nginx/sites-available/monsite.conf /etc/nginx/sites-enabled/
 ```
+## Étape 5 : Configuration du HTTPS avec SSL
+
+Ouvrez le fichier de configuration de votre site principal :
+
+```
+sudo nano /etc/nginx/sites-available/monsite.conf
+```
+Modifiez le bloc de configuration pour le port 443 (HTTPS) en ajoutant les directives SSL :
+
+```
+server {
+    listen 443 ssl;
+    server_name monsite.com www.monsite.com;
+
+    ssl_certificate /etc/nginx/ssl/monsite.crt;
+    ssl_certificate_key /etc/nginx/ssl/monsite.key;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+Sauvegardez et fermez le fichier de configuration.
+
+## Étape 6 : Redémarrage du serveur Nginx
+Redémarrez le serveur Nginx pour appliquer les modifications en utilisant la commande suivante :
+
+shell
+Copy code
+sudo service nginx restart
+Après avoir suivi ces étapes, votre serveur web Nginx sera configuré avec votre site principal, vos sous-domaines, et le support SSL avec des certificats auto-signés. Assurez-vous que les conteneurs Docker correspondants sont en cours d'exécution sur les ports spécifiés.
+
+Vérifiez l'accès à votre site principal et à vos sous-domaines en ouvrant un navigateur Web et en accédant à l'URL correspondante (par exemple, http://monsite.com ou http://sousdomaine1.monsite.com).
